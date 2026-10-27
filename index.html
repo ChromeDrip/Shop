@@ -331,7 +331,10 @@ function lbClose(){LB.classList.remove('on')}function lbGo(d){lbI=(lbI+d+lbA.len
 LB.addEventListener('click',e=>{if(e.target===LB||e.target.id==='lbx'||e.target.closest('#lbx'))lbClose();const b=e.target.closest('[data-lb]');if(b)lbGo(+b.dataset.lb)});
 function sres(){const q=$('#sq').value.trim().toLowerCase();$('#sx').innerHTML=!q?'<p class="gy" style="margin-bottom:10px">Browse</p><div class="chips">'+Object.entries(CAT).map(([k,v])=>`<button class="chip" data-f="${k}">${v}</button>`).join('')+'<button class="chip" data-f="new">New drops</button></div>':(()=>{const a=P.filter(p=>(p.n+' '+CAT[p.c]).toLowerCase().includes(q));return a.length?a.map(p=>`<button class="sri" data-qv="${p.id}"><img src="${im0(p)}" alt="" width="48" height="64"><span>${esc(p.n)}<small>${CAT[p.c]}</small></span><b>${inr(p.p)}</b></button>`).join(''):`<p>No pieces match “${esc($('#sq').value.trim())}”. Try “cross”, “ring” or “chain”.</p>`})()}
 $('#sq').oninput=sres;$('#sq').onkeydown=e=>{if(e.key==='Enter'&&e.target.value.trim()){st.q=e.target.value.trim();st.cat='all';closeL();upd();$('#shop').scrollIntoView({behavior:RM?'auto':'smooth'})}};
-/* Customer order requests: send the complete request to the store's WhatsApp via click-to-chat. */
+/* Customer order requests: save securely to Supabase, then prepare the existing WhatsApp message. */
+const SUPABASE_URL='https://lrxsxsmoiqbosprtttaz.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_lyB-G81Q_DC2CZhH_qApkg_0TcwYd_2';
+const ORDER_API=SUPABASE_URL+'/functions/v1/submit-order';
 const ORDER_WHATSAPP='918810686566'; // +91 8810686566, international digits only.
 const INDIAN_STATES=['Andaman and Nicobar Islands','Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chandigarh','Chhattisgarh','Dadra and Nagar Haveli and Daman and Diu','Delhi','Goa','Gujarat','Haryana','Himachal Pradesh','Jammu and Kashmir','Jharkhand','Karnataka','Kerala','Ladakh','Lakshadweep','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Puducherry','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal'];
 const F=[['name','Full Name','text','name'],['email','Email Address','email','email'],['phone','Phone Number','tel','tel-national'],['house','House/Flat Number','text','address-line1'],['street','Street Address','text','address-line2'],['locality','Locality/Area','text','address-level3'],['city','City','text','address-level2'],['st','State','select','address-level1'],['pin','PIN Code','text','postal-code']];
@@ -341,7 +344,7 @@ let orderBusy=false;
 function orderSetError(msg){$('#order-error').textContent=msg||''}
 $('#return-shopping').onclick=()=>closeL();
 $('#continue-shop').onclick=()=>{closeL();$('#shop').scrollIntoView({behavior:RM?'auto':'smooth'});};
-$('#cf').onsubmit=e=>{
+$('#cf').onsubmit=async e=>{
  e.preventDefault();if(orderBusy)return;orderSetError('');$('#order-whatsapp-status').textContent='';$('#order-whatsapp-fallback').hidden=true;
  const v=Object.fromEntries(F.map(([k])=>[k,$('#f-'+k).value.trim()])),er={};
  if(!v.name)er.name='Enter your full name.';
@@ -362,34 +365,42 @@ $('#cf').onsubmit=e=>{
  if(!ids.length){orderSetError('Your bag is empty. Add at least one item before submitting an order request.');return}
  let subtotal=0;
  const itemLines=ids.map(id=>{const p=byId(id),q=cart[id],lineTotal=p.p*q;subtotal+=lineTotal;return `- ${p.n}\n  Quantity: ${q}\n  Unit price: ${inr(p.p)}\n  Line total: ${inr(lineTotal)}`});
- const orderRef='CD-'+new Date().toISOString().replace(/[-:TZ.]/g,'').slice(0,14)+'-'+Math.random().toString(36).slice(2,6).toUpperCase();
  const address=[v.house,v.street,v.locality,v.city,v.st,v.pin].filter(Boolean).join(', ');
- const message=[
-  'CHROMEDRIP — NEW ORDER REQUEST',
-  'Order reference: '+orderRef,
-  '',
-  'CUSTOMER DETAILS',
-  'Name: '+v.name,
-  'Email: '+v.email,
-  'Phone: '+v.phone,
-  'Delivery address: '+address,
-  '',
-  'ORDER ITEMS',
-  ...itemLines,
-  '',
-  'Subtotal / estimate: '+inr(subtotal),
-  'Shipping: Not included — please confirm',
-  'Payment: No online payment collected',
-  'Status: Customer order request; not yet confirmed',
-  '',
-  'Please contact the customer to confirm availability, shipping and final amount.'
- ].join('\n');
- const url='https://wa.me/'+number+'?text='+encodeURIComponent(message);
- const fallback=$('#order-whatsapp-fallback');fallback.href=url;fallback.hidden=false;
- $('#order-whatsapp-status').textContent='Your order details are prepared for WhatsApp. WhatsApp will open in a new tab; review the full message and tap Send to submit your request. The order is not sent or confirmed until you tap Send.';
- // Open synchronously from the submit click so popup blockers are less likely to interfere.
- const opened=window.open(url,'_blank');
- if(opened){opened.opener=null}else fallback.focus();
+ const submitButton=$('#submit-order');orderBusy=true;submitButton.disabled=true;submitButton.textContent='SAVING ORDER REQUEST…';
+ try{
+  const requestKey=(crypto.randomUUID?crypto.randomUUID():([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)));
+  const response=await fetch(ORDER_API,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Idempotency-Key':requestKey},body:JSON.stringify({customer:v,items:ids.map(id=>({product_id:String(id),quantity:Number(cart[id])}))})});
+  const result=await response.json().catch(()=>({}));
+  if(!response.ok||!result.order_reference)throw new Error(result.error||'We could not save your order request. Please check your connection and try again.');
+  const orderRef=result.order_reference;
+  const message=[
+   'CHROMEDRIP — NEW ORDER REQUEST',
+   'Order reference: '+orderRef,
+   '',
+   'CUSTOMER DETAILS',
+   'Name: '+v.name,
+   'Email: '+v.email,
+   'Phone: '+v.phone,
+   'Delivery address: '+address,
+   '',
+   'ORDER ITEMS',
+   ...itemLines,
+   '',
+   'Subtotal / estimate: '+inr(subtotal),
+   'Shipping: Not included — please confirm',
+   'Payment: No online payment collected',
+   'Status: Saved in CHROMEDRIP order dashboard; awaiting confirmation',
+   '',
+   'Please contact the customer to confirm availability, shipping and final amount.'
+  ].join('\n');
+  const url='https://wa.me/'+number+'?text='+encodeURIComponent(message);
+  const fallback=$('#order-whatsapp-fallback');fallback.href=url;fallback.hidden=false;
+  $('#order-whatsapp-status').textContent='Order request '+orderRef+' has been saved. WhatsApp will open in a new tab; review the message and tap Send if you also want to contact CHROMEDRIP on WhatsApp.';
+  // Open synchronously after the successful save; show the fallback link if the browser blocks it.
+  const opened=window.open(url,'_blank');
+  if(opened){opened.opener=null}else fallback.focus();
+ }catch(err){orderSetError(err&&err.message?err.message:'We could not save your order request. Please try again.');}
+ finally{orderBusy=false;submitButton.disabled=false;submitButton.textContent='SUBMIT ORDER REQUEST'}
 };
 function openCk(){const ids=Object.keys(cart).filter(byId);if(!ids.length){toast('Your bag is empty.');return}let s=0;$('#cs').innerHTML=ids.map(id=>{const p=byId(id),q=cart[id];s+=p.p*q;return `<li class="order-line"><img src="${im0(p)}" alt=""><span>${esc(p.n)}<small>Quantity: ${q} · Unit price: ${inr(p.p)}</small></span><b>${inr(p.p*q)}</b></li>`}).join('')+`<li class="tot"><span>Subtotal / requested estimate</span><b>${inr(s)}</b></li><li><small>Shipping is not included; the owner will confirm the final amount.</small></li>`;$('#cf').hidden=false;$('#cs').hidden=false;$('#cn2').hidden=true;$('#order-ref').textContent='';$('#order-wa').hidden=true;orderSetError('');openL('ck')}
 const INFO={ship:'Shipping policy',ret:'Returns and refunds',priv:'Privacy policy',terms:'Terms and conditions',contact:'Contact'};

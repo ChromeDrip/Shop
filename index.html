@@ -369,7 +369,7 @@ $('#cf').onsubmit=async e=>{
  const submitButton=$('#submit-order');orderBusy=true;submitButton.disabled=true;submitButton.textContent='SAVING ORDER REQUEST…';
  try{
   const requestKey=(crypto.randomUUID?crypto.randomUUID():([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)));
-  const response=await fetch(ORDER_API,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Idempotency-Key':requestKey},body:JSON.stringify({customer:v,items:ids.map(id=>({product_id:String(id),quantity:Number(cart[id])}))})});
+  const response=await fetch(ORDER_API,{method:'POST',headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Idempotency-Key':requestKey},body:JSON.stringify({c:v,items:ids.map(id=>({product_id:String(id),quantity:Number(cart[id])}))})});
   const result=await response.json().catch(()=>({}));
   if(!response.ok||!result.order_reference)throw new Error(result.error||'We could not save your order request. Please check your connection and try again.');
   const orderRef=result.order_reference;

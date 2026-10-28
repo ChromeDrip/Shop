@@ -13,7 +13,7 @@
     <div class="panel"><div class="filters"><input id="search" type="search" placeholder="Search reference, name, email or phone" aria-label="Search orders"><select id="status-filter" aria-label="Order status"><option value="">All statuses</option><option>Pending Confirmation</option><option>Confirmed</option><option>Preparing</option><option>Dispatched</option><option>Delivered</option><option>Cancelled</option></select><select id="date-filter" aria-label="Date range"><option value="7">Last 7 Days</option><option value="30">Last 30 Days</option><option value="90">Last 90 Days</option><option value="365">Last 365 Days</option><option value="lifetime" selected>Lifetime</option></select><button class="btn" id="refresh">REFRESH</button></div><div class="countline"><span id="result-count">Loading orders…</span><span>Newest first · Business timezone: Asia/Kolkata · rolling windows exclude future orders</span></div><p class="error" id="dash-error" role="alert"></p><div class="table-wrap"><table><thead><tr><th>Order reference</th><th>Date &amp; time</th><th>Customer</th><th>Products</th><th>Requested total</th><th>Status</th><th>Details</th></tr></thead><tbody id="orders-body"><tr><td colspan="7" class="empty">Loading orders…</td></tr></tbody></table></div><div class="pager"><button class="btn" id="prev">PREVIOUS</button><span id="page-label">Page 1</span><button class="btn" id="next">NEXT</button></div></div>
   </div>
   <div id="products-section" class="hidden">
-    <div class="row" style="justify-content:space-between;flex-wrap:wrap;margin-bottom:28px"><div><p class="ey">Administration</p><h1>PRODUCT MANAGEMENT</h1><p class="muted" style="margin-top:8px">Add and edit products for the main website.</p></div><button class="btn primary" id="add-prod-btn">+ ADD NEW PRODUCT</button></div>
+    <div class="row" style="justify-content:space-between;flex-wrap:wrap;margin-bottom:28px"><div><p class="ey">Administration</p><h1>PRODUCT MANAGEMENT</h1><p class="muted" style="margin-top:8px">Add and edit products for the main website.</p></div><div class="row" style="gap:10px"><button class="btn" id="migrate-btn" style="border-color:var(--mt);color:var(--mt)">🚀 MIGRATE EXISTING PRODUCTS</button><button class="btn primary" id="add-prod-btn">+ ADD NEW PRODUCT</button></div></div>
     <div class="panel">
       <div class="table-wrap">
         <table>
@@ -72,6 +72,53 @@ $('refresh').onclick=()=>{currentPage=1;loadOrders()};$('prev').onclick=()=>{if(
 $('orders-body').addEventListener('click',e=>{const b=e.target.closest('[data-order]');if(b)openDetail(b.dataset.order)});$('close-detail').onclick=()=>$('detail').classList.add('hidden');
 $('copy-address').onclick=async()=>{if(!selectedOrder)return;const o=selectedOrder;const address=[o.house_flat,o.street_address,o.locality,o.city,o.state,o.pin_code].join(', ');try{await navigator.clipboard.writeText(address);toast('Delivery address copied.')}catch{toast('Clipboard access is unavailable in this browser.')}};
 $('save-status').onclick=async()=>{if(!selectedOrder)return;const b=$('save-status');b.disabled=true;$('status-error').textContent='';try{await callAdmin('PATCH',{id:selectedOrder.id,status:$('d-status').value});toast('Order status updated.');await loadOrders();const fresh=(lastPayload?.orders||[]).find(x=>x.id===selectedOrder.id);if(fresh)openDetail(fresh.id);else $('detail').classList.add('hidden')}catch(e){$('status-error').textContent=e.message}finally{b.disabled=false}};
+async function migrateExistingProducts() {
+  const PRODUCTS_TO_MIGRATE = [
+    {n:'Winged Gothic Cross', p:800, im:'wng', d:'An ornate winged cross cross pendant with sculpted feathers and fine gothic filigree.', stock:true},
+    {n:'Layered Chain Necklace', p:800, im:'lyr', d:'A paperclip chain layered over a fine curb chain, finished with a black bar and a small cross charm.', stock:true},
+    {n:'Winged Star Necklace', p:800, im:'wst', d:'A winged star centrepiece with black stone accents, draped on layered chains.', stock:true},
+    {n:'Sun Pendant & Ring Combo', p:250, im:'sun', d:'A spiral sun pendant on a curb chain, paired with a filigree ring.', stock:true},
+    {n:'Berserk Chain', p:200, im:'bsk', d:'The brand-mark pendant on a curb chain. Forged in darkness, worn with purpose.', stock:true},
+    {n:'Arrowhead Wire Ring', p:100, im:'rgA', d:'A sharp arrowhead ring built from open, sculpted wire lines.', stock:true},
+    {n:'Filigree Cone Ring', p:100, im:'rgF', d:'A cone-shaped statement ring with engraved gothic filigree.', stock:true},
+    {n:'Spider Pendant', p:299, im:'spd', d:'A cut-out spider pendant on a curb chain.', stock:true},
+    {n:'Ribbon Bow Pendant', p:299, im:'bow', d:'A delicate ribbon-bow pendant on a polished curb chain.', stock:true},
+    {n:'Tribal Flame Cross', p:399, im:'thn', d:'A tribal, flame-edged cross pendant on a curb chain.', stock:true},
+    {n:'Star Cross Pendant', p:299, im:'str', d:'A minimal star-cross outline pendant on a curb chain.', stock:true},
+    {n:'Gothic Dagger Pendant', p:299, im:'vjr', d:'A slim, engraved dagger pendant with a sculpted ornate hilt, hung on a curb chain.', stock:true},
+    {n:'Rose Cross Pendant', p:399, im:'rse', d:'A gothic cross with a sculpted rose at its heart and leaf-cut arms, on a curb chain.', stock:true},
+    {n:'Skull Dagger Heart Pendant', p:349, im:'skh', d:'A skull-topped dagger driven through a deep red enamel heart.', stock:true},
+    {n:'Floral Filigree Cross', p:399, im:'flc', d:'A large cross with engraved flowers and beaded filigree tips.', stock:true},
+    {n:'Dragon Coil Ring', p:100, im:'drr', d:'A dragon coiled into a ring, with sculpted scales and a fierce head.', stock:true},
+    {n:'Dragon Bond Charms (Set of 2)', p:350, im:'pDrg', d:'Matched by destiny: a pair of dragon charms, one white and one black.', stock:true},
+    {n:'Best Friends Heart Charm', p:270, im:'pHrt', d:'A split-heart “Best Friends” charm in bold enamel colours.', stock:true},
+    {n:'Chrome Wired Earphones', p:550, im:'pEar', d:'Premium wired earphones with a chrome finish. Clean sound, chrome style.', stock:true}
+  ];
+
+  const btn = $('migrate-btn');
+  btn.disabled = true; btn.textContent = 'MIGRATING...';
+
+  try {
+    for (const p of PRODUCTS_TO_MIGRATE) {
+      await client.from('products').insert([{
+        name: p.n,
+        price: p.p,
+        image_url: `https://lrxsxsmoiqbosprtttaz.supabase.co/storage/v1/object/public/products/${p.im}.jpg`,
+        is_in_stock: p.stock,
+        description: p.d
+      }]);
+    }
+    toast('Migration successful! All products imported.');
+    await loadProducts();
+  } catch (e) {
+    alert('Migration failed: ' + e.message);
+  } finally {
+    btn.textContent = 'MIGRATION COMPLETE';
+  }
+}
+
+$('migrate-btn').onclick = migrateExistingProducts;
+
 $('add-prod-btn').onclick=()=>{$('product-form').reset();$('prod-id').value='';$('product-modal').classList.remove('hidden')};
 $('close-prod-modal').onclick=()=>$('product-modal').classList.add('hidden');
 $('product-form').onsubmit=saveProduct;

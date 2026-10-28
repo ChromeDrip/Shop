@@ -209,31 +209,7 @@ const CINFO={all:DEF,necklaces:'Pendants with edge, on chains that carry them.',
 const MOOD={all:{t:'#8D1525',im:'wst'},necklaces:{t:'#5b6fa8',im:'spd'},rings:{t:'#8a8fa3',im:'rgF'},crosses:{t:'#b3162f',im:'thn'},chains:{t:'#3f8f9a',im:'bsk'},charms:{t:'#c08a2b',im:'pDrg'},new:{t:'#7a4fb0',im:'sun'},bag:{t:'#d01c36'}};
 /* v:1 = price shown on the brand's own poster; v:0 = please confirm before launch */
 const P=[
- /* --- LIVE DATABASE CONNECTION --- */
-  const SUPABASE_URL = 'https://lrxsxsmoiqbosprtttaz.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_lyB-G81Q_DC2CZhH_qApkg_0TcwYd_2';
-  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-  async function fetchProducts() {
-    try {
-      const { data, error } = await supabaseClient.from('products').select('*').order('created_at', { ascending: false });
-      if (error) throw error;
-      return data.map((p, index) => ({
-        id: p.id, n: p.name, c: 'all', p: p.price, v: 1, nw: 1, g: [p.image_url], d: p.description, sold: !p.is_in_stock, k: index
-      }));
-    } catch (e) {
-      console.error("Database Error:", e);
-      return [];
-    }
-  }
-
-  let P = [];
-  async function initStore() {
-    P = await fetchProducts();
-    if(typeof render === 'function') render();
-  }
-  initStore();
-  /* --- END LIVE CONNECTION --- */];
+];
 P.forEach((p,k)=>{p.k=k;p.po=p.g[0][0]==='p'});
 const byId=id=>P.find(p=>p.id===id),inr=n=>'₹'+n.toLocaleString('en-IN'),esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),im0=p=>IM[p.g[0]];
 const HEART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.5-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.5-9 9-9 9z"/></svg>',XI='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
@@ -247,7 +223,20 @@ const st={cat:'all',q:'',av:false,so:'feat',pr:'any'};let dmode='cart',qq=1,cur=
 /* intro */
 (function(){const i=$('#intro');let seen=0;try{seen=sessionStorage.getItem('cd-i')}catch(e){}
 
-const done=()=>{document.body.classList.add('ready');i.classList.add('out');setTimeout(()=>i.remove(),900);try{sessionStorage.setItem('cd-i','1')}catch(e){}removeEventListener('keydown',kd)},t=setTimeout(done,3300),sk=()=>{clearTimeout(t);done()},kd=e=>{if(e.key==='Escape'||e.key==='Enter')sk()};
+ const done = async () => {
+    // First, make sure we have the products from the database
+    if (P.length === 0) {
+      await initStore();
+    }
+
+    document.body.classList.add('ready');
+    i.classList.add('out');
+    setTimeout(() => i.remove(), 900);
+    try {
+      sessionStorage.setItem('cd-i', '1');
+    } catch (e) {}
+    removeEventListener('keydown', kd);
+  };i.classList.add('out');setTimeout(()=>i.remove(),900);try{sessionStorage.setItem('cd-i','1')}catch(e){}removeEventListener('keydown',kd)},t=setTimeout(done,3300),sk=()=>{clearTimeout(t);done()},kd=e=>{if(e.key==='Escape'||e.key==='Enter')sk()};
 i.onclick=sk;addEventListener('keydown',kd)})();
 let ai=0;const an=()=>{$('#ann').innerHTML='<span>'+CONFIG.msgs[ai%CONFIG.msgs.length]+'</span>'};an();if(!RM)setInterval(()=>{ai++;an()},5000);
 /* ---------- hover-reactive background ---------- */

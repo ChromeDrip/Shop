@@ -372,7 +372,7 @@ $('#cf').onsubmit=async e=>{
   const customer={...v,phone:digits,state:v.st,pincode:v.pin,postal_code:v.pin,zip:v.pin,full_name:v.name,address:address,address_line1:v.house+', '+v.street,address_line2:v.locality,country:'India'};
   const orderPayload={c:customer,customer,items:ids.map(id=>({product_id:String(id),id:String(id),quantity:Number(cart[id])}))};
   const requestKey=(crypto.randomUUID?crypto.randomUUID():([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,c=>(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)));
-  let saved=null;
+  let saved=null,saveErr='';
   try{
    const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),8000);
    const response=await fetch(ORDER_API,{method:'POST',signal:ctl.signal,headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY,'Idempotency-Key':requestKey},body:JSON.stringify(orderPayload)});
@@ -380,7 +380,8 @@ $('#cf').onsubmit=async e=>{
    const result=await response.json().catch(()=>({}));
    if(!response.ok)console.error('submit-order failed',response.status,result,orderPayload);
    saved=response.ok&&result.order_reference?result.order_reference:null;
-  }catch(netErr){console.error('submit-order error',netErr)}
+   if(!saved)saveErr='Server said ('+response.status+'): '+(result.error||result.message||JSON.stringify(result));
+  }catch(netErr){console.error('submit-order error',netErr);saveErr='Network error: '+netErr.message}
   const orderRef=saved?saved:'WA-'+Date.now().toString(36).toUpperCase();
   const message=[
    'CHROMEDRIP — NEW ORDER REQUEST',
@@ -404,7 +405,7 @@ $('#cf').onsubmit=async e=>{
   ].join('\n');
   const url='https://wa.me/'+number+'?text='+encodeURIComponent(message);
   const fallback=$('#order-whatsapp-fallback');fallback.href=url;fallback.hidden=false;
-  $('#order-whatsapp-status').textContent='Order request '+orderRef+(saved?' has been saved.':' is ready.')+' WhatsApp will open in a new tab; review the message and tap Send if you also want to contact CHROMEDRIP on WhatsApp.';
+  $('#order-whatsapp-status').textContent='Order request '+orderRef+(saved?' has been saved.':' was NOT saved to the dashboard. '+saveErr+'.')+' WhatsApp will open in a new tab; review the message and tap Send if you also want to contact CHROMEDRIP on WhatsApp.';
   // Open synchronously after the successful save; show the fallback link if the browser blocks it.
   const opened=window.open(url,'_blank');
   if(opened){opened.opener=null}else{window.location.href=url}

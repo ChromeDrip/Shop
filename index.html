@@ -209,7 +209,25 @@ const CINFO={all:DEF,necklaces:'Pendants with edge, on chains that carry them.',
 const MOOD={all:{t:'#8D1525',im:'wst'},necklaces:{t:'#5b6fa8',im:'spd'},rings:{t:'#8a8fa3',im:'rgF'},crosses:{t:'#b3162f',im:'thn'},chains:{t:'#3f8f9a',im:'bsk'},charms:{t:'#c08a2b',im:'pDrg'},new:{t:'#7a4fb0',im:'sun'},bag:{t:'#d01c36'}};
 /* v:1 = price shown on the brand's own poster; v:0 = please confirm before launch */
 const P=[
-];
+{id:'wng',n:'Winged Gothic Cross',c:'crosses',p:800,v:1,nw:1,g:['wng','pWng'],d:'An ornate winged cross pendant with sculpted feathers and fine gothic filigree. A statement piece that does the talking.'},
+{id:'lyr',n:'Layered Chain Necklace',c:'chains',p:800,v:1,nw:1,g:['lyr','pWng'],d:'A paperclip chain layered over a fine curb chain, finished with a black bar and a small cross charm.'},
+{id:'wst',n:'Winged Star Necklace',c:'necklaces',p:800,v:0,nw:1,g:['wst'],d:'A winged star centrepiece with black stone accents, draped on layered chains.'},
+{id:'sun',n:'Sun Pendant & Ring Combo',c:'necklaces',p:250,v:1,nw:1,g:['sun','rgF','pSun'],d:'A spiral sun pendant on a curb chain, paired with a filigree ring. One combo price.'},
+{id:'bsk',n:'Berserk Chain',c:'chains',p:200,v:1,g:['bsk','pBsk'],d:'The brand-mark pendant on a curb chain. Forged in darkness, worn with purpose.'},
+{id:'rga',n:'Arrowhead Wire Ring',c:'rings',p:100,v:1,g:['rgA','rgA2','pRng'],h:'rgA2',d:'A sharp arrowhead ring built from open, sculpted wire lines. Any ring, same price.'},
+{id:'rgf',n:'Filigree Cone Ring',c:'rings',p:100,v:1,g:['rgF','pRng'],d:'A cone-shaped statement ring with engraved gothic filigree. Any ring, same price.'},
+{id:'spd',n:'Spider Pendant',c:'necklaces',p:299,v:0,g:['spd'],d:'A cut-out spider pendant on a curb chain.'},
+{id:'bow',n:'Ribbon Bow Pendant',c:'necklaces',p:299,v:0,g:['bow'],d:'A delicate ribbon-bow pendant on a polished curb chain.'},
+{id:'thn',n:'Tribal Flame Cross',c:'crosses',p:399,v:0,g:['thn'],d:'A tribal, flame-edged cross pendant on a curb chain.'},
+{id:'str',n:'Star Cross Pendant',c:'crosses',p:299,v:0,g:['str'],d:'A minimal star-cross outline pendant on a curb chain.'},
+{id:'vjr',n:'Gothic Dagger Pendant',c:'necklaces',p:299,v:0,nw:1,g:['vjr'],d:'A slim, engraved dagger pendant with a sculpted ornate hilt, hung on a curb chain.'},
+{id:'rse',n:'Rose Cross Pendant',c:'crosses',p:399,v:0,nw:1,g:['rse'],d:'A gothic cross with a sculpted rose at its heart and leaf-cut arms, on a curb chain.'},
+{id:'skh',n:'Skull Dagger Heart Pendant',c:'necklaces',p:349,v:0,nw:1,g:['skh'],d:'A skull-topped dagger driven through a deep red enamel heart. Dark romance, worn close.'},
+{id:'flc',n:'Floral Filigree Cross',c:'crosses',p:399,v:0,nw:1,g:['flc'],d:'A large cross with engraved flowers and beaded filigree tips. Statement size.'},
+{id:'drr',n:'Dragon Coil Ring',c:'rings',p:100,v:1,nw:1,g:['drr','drr2','pRng'],d:'A dragon coiled into a ring, with sculpted scales and a fierce head. Any ring, same price.'},
+{id:'drg',n:'Dragon Bond Charms (Set of 2)',c:'charms',p:350,v:1,g:['pDrg'],d:'Matched by destiny: a pair of dragon charms, one white and one black. For the ones who fly together. Sold as a set of 2.'},
+{id:'hrt',n:'Best Friends Heart Charm',c:'charms',p:270,v:1,g:['pHrt'],d:'A split-heart “Best Friends” charm in bold enamel colours. Made for the bold. Priced each.'},
+{id:'ear',n:'Chrome Wired Earphones',c:'charms',p:550,v:1,pre:1,g:['pEar'],ft:['Crisp & clear sound','Built-in mic','Lightweight & comfortable','Type-C connector'],d:'Premium wired earphones with a chrome finish. Clean sound, chrome style, no limits. Pre-orders open now. Sold without guarantee or warranty.'}];
 P.forEach((p,k)=>{p.k=k;p.po=p.g[0][0]==='p'});
 const byId=id=>P.find(p=>p.id===id),inr=n=>'₹'+n.toLocaleString('en-IN'),esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])),im0=p=>IM[p.g[0]];
 const HEART='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20s-7-4.5-9-9a5 5 0 0 1 9-3 5 5 0 0 1 9 3c-2 4.5-9 9-9 9z"/></svg>',XI='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
@@ -223,20 +241,7 @@ const st={cat:'all',q:'',av:false,so:'feat',pr:'any'};let dmode='cart',qq=1,cur=
 /* intro */
 (function(){const i=$('#intro');let seen=0;try{seen=sessionStorage.getItem('cd-i')}catch(e){}
 
- const done = async () => {
-    // First, make sure we have the products from the database
-    if (P.length === 0) {
-      await initStore();
-    }
-
-    document.body.classList.add('ready');
-    i.classList.add('out');
-    setTimeout(() => i.remove(), 900);
-    try {
-      sessionStorage.setItem('cd-i', '1');
-    } catch (e) {}
-    removeEventListener('keydown', kd);
-  };i.classList.add('out');setTimeout(()=>i.remove(),900);try{sessionStorage.setItem('cd-i','1')}catch(e){}removeEventListener('keydown',kd)},t=setTimeout(done,3300),sk=()=>{clearTimeout(t);done()},kd=e=>{if(e.key==='Escape'||e.key==='Enter')sk()};
+const done=()=>{document.body.classList.add('ready');i.classList.add('out');setTimeout(()=>i.remove(),900);try{sessionStorage.setItem('cd-i','1')}catch(e){}removeEventListener('keydown',kd)},t=setTimeout(done,3300),sk=()=>{clearTimeout(t);done()},kd=e=>{if(e.key==='Escape'||e.key==='Enter')sk()};
 i.onclick=sk;addEventListener('keydown',kd)})();
 let ai=0;const an=()=>{$('#ann').innerHTML='<span>'+CONFIG.msgs[ai%CONFIG.msgs.length]+'</span>'};an();if(!RM)setInterval(()=>{ai++;an()},5000);
 /* ---------- hover-reactive background ---------- */
